@@ -4,6 +4,7 @@ import json
 import os
 import re
 import tqdm
+from multiprocessing import Pool
 
 from .simpledicomanonymizer import *
 
@@ -36,10 +37,16 @@ def anonymize(inputPath, outputPath, anonymizationActions):
             inputFilesList.append(InputFolder + '/' + fileName)
             outputFilesList.append(OutputFolder + '/' + fileName)
 
+    pool = Pool(processes=3)
     progressBar = tqdm.tqdm(total=len(inputFilesList))
-    for cpt in range(len(inputFilesList)):
-        anonymizeDICOMFile(inputFilesList[cpt], outputFilesList[cpt], anonymizationActions)
+    def updateProgressBar(useless):
         progressBar.update(1)
+
+    for cpt in range(len(inputFilesList)):
+        pool.apply_async(anonymizeDICOMFile, (inputFilesList[cpt], outputFilesList[cpt], anonymizationActions), callback=updateProgressBar)
+
+    pool.close()
+    pool.join()
 
     progressBar.close()
 

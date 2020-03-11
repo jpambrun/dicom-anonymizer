@@ -51,7 +51,7 @@ def replaceElement(element):
         raise NotImplementedError('Not anonymized. VR {} not yet implemented.'.format(element.VR))
 
 
-def replace(dataset, tag):
+def replace(dataset, tag, seed):
     """
     D - replace with a non-zero length value that may be a dummy value and consistent with the
     VR
@@ -78,7 +78,7 @@ def emptyElement(element):
         raise NotImplementedError('Not anonymized. VR {} not yet implemented.'.format(element.VR))
 
 
-def empty(dataset, tag):
+def empty(dataset, tag, seed):
     """
     Z - replace with a zero length value, or a non-zero length value that may be a dummy value and
     consistent with the VR
@@ -99,7 +99,7 @@ def deleteElement(dataset, element):
         del dataset[element.tag]
 
 
-def delete(dataset, tag):
+def delete(dataset, tag, seed):
     """X - remove"""
     def rangeCallback(dataset, dataElement):
         if dataElement.tag.group & tag[2] == tag[0] and dataElement.tag.element & tag[3] == tag[1]:
@@ -113,12 +113,12 @@ def delete(dataset, tag):
             deleteElement(dataset, element)  # element.tag is not the same type as tag.
 
 
-def keep(dataset, tag):
+def keep(dataset, tag, seed):
     """K - keep (unchanged for non-sequence attributes, cleaned for sequences)"""
     pass
 
 
-def clean(dataset, tag):
+def clean(dataset, tag, seed):
     """
     C - clean, that is replace with values of similar meaning known not to contain identifying
     information and consistent with the VR
@@ -127,7 +127,7 @@ def clean(dataset, tag):
         raise NotImplementedError('Tag not anonymized. Not yet implemented.')
 
 
-def replaceUID(dataset, tag):
+def replaceUID(dataset, tag, seed):
     """
     U - replace with a non-zero length UID that is internally consistent within a set of Instances
     Lazy solution : Replace with empty string
@@ -137,30 +137,30 @@ def replaceUID(dataset, tag):
         replaceElementUID(element)
 
 
-def emptyOrReplace(dataset, tag):
+def emptyOrReplace(dataset, tag, seed):
     """Z/D - Z unless D is required to maintain IOD conformance (Type 2 versus Type 1)"""
-    replace(dataset, tag)
+    replace(dataset, tag, seed)
 
 
-def deleteOrEmpty(dataset, tag):
+def deleteOrEmpty(dataset, tag, seed):
     """X/Z - X unless Z is required to maintain IOD conformance (Type 3 versus Type 2)"""
-    empty(dataset, tag)
+    empty(dataset, tag, seed)
 
 
-def deleteOrReplace(dataset, tag):
+def deleteOrReplace(dataset, tag, seed):
     """X/D - X unless D is required to maintain IOD conformance (Type 3 versus Type 1)"""
-    replace(dataset, tag)
+    replace(dataset, tag, seed)
 
 
-def deleteOrEmptyOrReplace(dataset, tag):
+def deleteOrEmptyOrReplace(dataset, tag, seed):
     """
     X/Z/D - X unless Z or D is required to maintain IOD conformance (Type 3 versus Type 2 versus
     Type 1)
     """
-    replace(dataset, tag)
+    replace(dataset, tag, seed)
 
 
-def deleteOrEmptyOrReplaceUID(dataset, tag):
+def deleteOrEmptyOrReplaceUID(dataset, tag, seed):
     """
     X/Z/U* - X unless Z or replacement of contained instance UIDs (U) is required to maintain IOD
     conformance (Type 3 versus Type 2 versus Type 1 sequences containing UID references)
@@ -227,8 +227,10 @@ def anonymizeDICOMFile(inFile, outFile, dictionary = ''):
 
     dataset = pydicom.dcmread(inFile)
 
+    seed = hash(str(dataset[0x0010,0x0010].value) + str(dataset[0x0010,0x0020].value))
+
     for tag, action in currentAnonymizationActions.items():
-        action(dataset, tag)
+        action(dataset, tag, seed)
 
     # X - Private tags = (0xgggg, oxeeee) where 0xgggg is odd
     dataset.remove_private_tags()

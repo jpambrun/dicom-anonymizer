@@ -164,3 +164,9 @@ All the listed actions below can be used with `generateActions` function by usin
 ** VR: Value Representation
 
 Work originally done by Edern Haumont
+
+
+
+# kubectl warp -i -t --image python:3.7-buster py-test  -- /bin/bash
+# pip install pydicom tqdm
+# for i in {1..1000}; do cp test.dcm "dcm$i.dcm"; done
